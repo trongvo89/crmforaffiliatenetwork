@@ -1,66 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface Employee {
-  id: string;
-  company_id: string;
-  name: string;
-  email: string | null;
-  role: "pm" | "bd" | "am" | "admin" | "custom";
-  custom_role_name: string | null;
-  base_salary: number | null;
-  is_active: boolean;
-}
-
-interface Company {
-  id: string;
-  profit_target: number;
-  bonus_pool_pct: number;
-  pm_pct: number;
-  bd_pct: number;
-  am_pct: number;
-  admin_pct: number;
-  min_kpi_threshold: number;
-  bonus_forfeit_policy: "redistribute" | "retain";
-}
-
-interface KpiRecord {
-  id: string;
-  employee_id: string;
-  period_month: string;
-  kpi_1_label: string | null;
-  kpi_1_target: number | null;
-  kpi_1_actual: number | null;
-  kpi_2_label: string | null;
-  kpi_2_target: number | null;
-  kpi_2_actual: number | null;
-  kpi_3_label: string | null;
-  kpi_3_target: number | null;
-  kpi_3_actual: number | null;
-  activity_notes: string | null;
-}
-
-interface KpiRowProps {
-  employee: Employee;
-  company: Company;
-  record: KpiRecord | null;
-  selectedMonth: string; // YYYY-MM
-  onSaved: (rec: KpiRecord) => void;
-}
+import type { Employee, Company, KpiRecord } from "../kpi-client";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const ROLE_LABELS: Record<string, string> = {
+const ROLE_LABELS: Record<Employee["role"], string> = {
   pm: "PM",
   bd: "BD",
   am: "AM",
@@ -68,23 +19,20 @@ const ROLE_LABELS: Record<string, string> = {
   custom: "Khác",
 };
 
-const ROLE_BADGE_VARIANTS: Record<string, "default" | "secondary" | "outline" | "success" | "warning" | "danger"> = {
-  pm: "default",
-  bd: "secondary",
-  am: "success",
-  admin: "warning",
-  custom: "outline",
+const ROLE_BADGE: Record<Employee["role"], string> = {
+  pm: "bg-blue-100 text-blue-700",
+  bd: "bg-purple-100 text-purple-700",
+  am: "bg-green-100 text-green-700",
+  admin: "bg-orange-100 text-orange-700",
+  custom: "bg-gray-100 text-gray-600",
 };
 
 function computeKpiScore(target: number | null, actual: number | null): number | null {
-  if (!target || target <= 0) return null;
-  const raw = ((actual ?? 0) / target) * 100;
-  return Math.min(raw, 150);
+  if (target == null || target <= 0) return null;
+  return Math.min(((actual ?? 0) / target) * 100, 150);
 }
 
-function computeOverallScore(
-  scores: Array<number | null>
-): number | null {
+function computeOverallScore(scores: Array<number | null>): number | null {
   const valid = scores.filter((s): s is number => s !== null);
   if (valid.length === 0) return null;
   return valid.reduce((a, b) => a + b, 0) / valid.length;
@@ -104,11 +52,20 @@ function overallBgClass(score: number | null): string {
   return "bg-red-100 text-red-800";
 }
 
+// ─── KpiRow Props ─────────────────────────────────────────────────────────────
+
+interface KpiRowProps {
+  employee: Employee;
+  company: Company;
+  record: KpiRecord | null;
+  selectedMonth: string; // YYYY-MM
+  onSaved: (rec: KpiRecord) => void;
+}
+
 // ─── KpiRow Component ─────────────────────────────────────────────────────────
 
 export function KpiRow({ employee, company, record, selectedMonth, onSaved }: KpiRowProps) {
   const { toast } = useToast();
-  const supabase = createClient();
 
   const [saving, setSaving] = useState(false);
 
@@ -136,6 +93,19 @@ export function KpiRow({ employee, company, record, selectedMonth, onSaved }: Kp
   const [kpi3Actual, setKpi3Actual] = useState<string>(
     record?.kpi_3_actual != null ? String(record.kpi_3_actual) : ""
   );
+
+  // Sync when record prop changes (month navigation)
+  useEffect(() => {
+    setKpi1Label(record?.kpi_1_label ?? "");
+    setKpi1Target(record?.kpi_1_target != null ? String(record.kpi_1_target) : "");
+    setKpi1Actual(record?.kpi_1_actual != null ? String(record.kpi_1_actual) : "");
+    setKpi2Label(record?.kpi_2_label ?? "");
+    setKpi2Target(record?.kpi_2_target != null ? String(record.kpi_2_target) : "");
+    setKpi2Actual(record?.kpi_2_actual != null ? String(record.kpi_2_actual) : "");
+    setKpi3Label(record?.kpi_3_label ?? "");
+    setKpi3Target(record?.kpi_3_target != null ? String(record.kpi_3_target) : "");
+    setKpi3Actual(record?.kpi_3_actual != null ? String(record.kpi_3_actual) : "");
+  }, [record]);
 
   const parseNum = (val: string): number | null => {
     const n = parseFloat(val);
@@ -174,6 +144,7 @@ export function KpiRow({ employee, company, record, selectedMonth, onSaved }: Kp
 
   const handleSave = async () => {
     setSaving(true);
+    const supabase = createClient();
     try {
       const periodMonth = `${selectedMonth}-01`;
 
@@ -195,12 +166,10 @@ export function KpiRow({ employee, company, record, selectedMonth, onSaved }: Kp
       const { data, error } = await supabase
         .from("kpi_records")
         .upsert(payload, { onConflict: "employee_id,period_month" })
-        .select()
+        .select("*")
         .single();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "Đã lưu KPI",
@@ -222,20 +191,20 @@ export function KpiRow({ employee, company, record, selectedMonth, onSaved }: Kp
     }
   };
 
-  const roleLabel = employee.role === "custom"
-    ? (employee.custom_role_name ?? "Khác")
-    : (ROLE_LABELS[employee.role] ?? employee.role);
+  const roleLabel =
+    employee.role === "custom"
+      ? (employee.custom_role_name ?? "Khác")
+      : ROLE_LABELS[employee.role];
 
-  const roleBadgeVariant = ROLE_BADGE_VARIANTS[employee.role] ?? "outline";
-
-  const meetsThreshold = overallScore !== null && overallScore >= (company.min_kpi_threshold ?? 70);
+  const meetsThreshold =
+    overallScore !== null && overallScore >= (company.min_kpi_threshold ?? 70);
 
   return (
-    <div className="rounded-xl border bg-white p-4 space-y-4">
+    <div className="rounded-xl border bg-white p-4 space-y-4 shadow-sm">
       {/* Employee header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-600">
+          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-600 shrink-0">
             {employee.name.charAt(0).toUpperCase()}
           </div>
           <div>
@@ -246,7 +215,14 @@ export function KpiRow({ employee, company, record, selectedMonth, onSaved }: Kp
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={roleBadgeVariant}>{roleLabel}</Badge>
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+              ROLE_BADGE[employee.role]
+            )}
+          >
+            {roleLabel}
+          </span>
           {overallScore !== null && (
             <span
               className={cn(
@@ -254,8 +230,7 @@ export function KpiRow({ employee, company, record, selectedMonth, onSaved }: Kp
                 overallBgClass(overallScore)
               )}
             >
-              Tổng KPI: {overallScore.toFixed(1)}%
-              {meetsThreshold ? " ✓" : " ✗"}
+              Tổng KPI: {overallScore.toFixed(1)}%{meetsThreshold ? " ✓" : " ✗"}
             </span>
           )}
         </div>
@@ -285,6 +260,7 @@ export function KpiRow({ employee, company, record, selectedMonth, onSaved }: Kp
               value={kpi.target}
               onChange={(e) => kpi.setTarget(e.target.value)}
               className="h-8 text-sm text-center"
+              min={0}
             />
             <Input
               type="number"
@@ -292,10 +268,11 @@ export function KpiRow({ employee, company, record, selectedMonth, onSaved }: Kp
               value={kpi.actual}
               onChange={(e) => kpi.setActual(e.target.value)}
               className="h-8 text-sm text-center"
+              min={0}
             />
             <div className="flex items-center justify-center">
               {kpi.score !== null ? (
-                <span className={cn("text-sm", scoreColorClass(kpi.score))}>
+                <span className={cn("text-sm tabular-nums", scoreColorClass(kpi.score))}>
                   {kpi.score.toFixed(1)}%
                 </span>
               ) : (
