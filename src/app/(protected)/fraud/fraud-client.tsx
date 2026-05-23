@@ -4,8 +4,6 @@ import * as React from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -46,7 +44,7 @@ interface FraudFlag {
   flag_type: "cr_spike" | "fraud_rate" | "revenue_anomaly";
   severity: "high" | "medium" | "low";
   status: "new" | "investigating" | "cleared" | "blocked";
-  details: any;
+  details: Record<string, unknown> | string | null;
   created_at: string;
   publishers?: { id: string; name: string; tier: string } | null;
 }
@@ -122,14 +120,6 @@ function formatDate(dateStr: string): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
-}
-
-function formatDateShort(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
   });
 }
 
@@ -238,7 +228,7 @@ function TierBadge({ tier }: { tier: string }) {
   );
 }
 
-function DetailsPreview({ details }: { details: any }) {
+function DetailsPreview({ details }: { details: Record<string, unknown> | string | null }) {
   if (!details) return null;
   if (typeof details === "string") {
     return <p className="text-xs text-gray-500 line-clamp-2">{details}</p>;
@@ -808,7 +798,7 @@ export function FraudClient({
           </p>
           {flags.length === 0 && (
             <p className="mt-1 text-sm text-gray-400">
-              Nhấn "Tự động phát hiện" để phân tích hoặc tạo cờ thủ công.
+              Nhấn &quot;Tự động phát hiện&quot; để phân tích hoặc tạo cờ thủ công.
             </p>
           )}
         </div>
