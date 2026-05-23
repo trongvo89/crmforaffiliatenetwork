@@ -234,13 +234,13 @@ function DetailsPreview({ details }: { details: Record<string, unknown> | string
     return <p className="text-xs text-gray-500 line-clamp-2">{details}</p>;
   }
   const parts: string[] = [];
-  if (details.note) parts.push(details.note);
+  if (details.note) parts.push(String(details.note));
   if (details.date) parts.push(`Ngày: ${details.date}`);
   if (details.cr !== undefined)
     parts.push(`CR: ${Number(details.cr).toFixed(2)}%`);
   if (details.threshold !== undefined)
     parts.push(`Ngưỡng: ${details.threshold}%`);
-  if (details.publisher_name) parts.push(`Publisher: ${details.publisher_name}`);
+  if (details.publisher_name) parts.push(`Publisher: ${String(details.publisher_name)}`);
   if (parts.length === 0) {
     try {
       return (
