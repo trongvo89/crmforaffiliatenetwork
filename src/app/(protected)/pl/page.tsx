@@ -120,6 +120,14 @@ export default async function PLPage() {
     .eq("company_id", company.id)
     .eq("is_active", true);
 
+  // Fetch API connections for sync feature
+  const { data: apiConnections } = await supabase
+    .from("api_connections")
+    .select("*")
+    .eq("company_id", company.id)
+    .eq("is_active", true)
+    .order("created_at");
+
   return (
     <PLClient
       company={company}
@@ -129,6 +137,7 @@ export default async function PLPage() {
       offers={offers ?? []}
       campaignPL={campaignPL}
       employees={employees ?? []}
+      apiConnections={apiConnections ?? []}
     />
   );
 }

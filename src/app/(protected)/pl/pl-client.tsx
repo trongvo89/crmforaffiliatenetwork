@@ -30,10 +30,11 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { TrendingUp, TrendingDown, Minus, PencilLine, BarChart2, AlertCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, PencilLine, BarChart2, AlertCircle, RefreshCw } from "lucide-react";
 import { PLForm } from "./components/pl-form";
 import { CampaignSection, type Campaign, type CampaignPL } from "./components/campaign-section";
 import { BonusDisplay } from "./components/bonus-display";
+import { ApiSyncDialog } from "./components/api-sync-dialog";
 import { Toaster } from "@/components/ui/toaster";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -83,6 +84,13 @@ interface Employee {
   is_active: boolean;
 }
 
+interface ApiConnection {
+  id: string;
+  name: string;
+  type: string;
+  is_active: boolean;
+}
+
 interface PLClientProps {
   company: Company;
   plMonthly: PLMonthlyRecord[];
@@ -91,6 +99,7 @@ interface PLClientProps {
   offers: Offer[];
   campaignPL: CampaignPL[];
   employees: Employee[];
+  apiConnections: ApiConnection[];
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -202,12 +211,14 @@ export function PLClient({
   offers,
   campaignPL: initialCampaignPL,
   employees,
+  apiConnections,
 }: PLClientProps) {
   const [selectedMonth, setSelectedMonth] = useState(currentMonthValue);
   const [plMonthly, setPLMonthly] = useState<PLMonthlyRecord[]>(initialPLMonthly);
   const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
   const [campaignPL, setCampaignPL] = useState<CampaignPL[]>(initialCampaignPL);
   const [formOpen, setFormOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   const monthOptions = useMemo(() => generateMonthOptions(), []);
 
@@ -324,10 +335,18 @@ export function PLClient({
             <p className="text-sm text-muted-foreground">
               {currentRecord ? `Đã nhập dữ liệu cho ${monthLabel}` : `Chưa có dữ liệu cho ${monthLabel}`}
             </p>
-            <Button onClick={() => setFormOpen(true)} size="sm">
-              <PencilLine className="h-4 w-4 mr-1.5" />
-              {currentRecord ? "Sửa P&L tháng này" : "Nhập P&L tháng này"}
-            </Button>
+            <div className="flex items-center gap-2">
+              {apiConnections.length > 0 && (
+                <Button variant="outline" onClick={() => setSyncOpen(true)} size="sm">
+                  <RefreshCw className="h-4 w-4 mr-1.5" />
+                  Đồng bộ API
+                </Button>
+              )}
+              <Button onClick={() => setFormOpen(true)} size="sm">
+                <PencilLine className="h-4 w-4 mr-1.5" />
+                {currentRecord ? "Sửa P&L tháng này" : "Nhập P&L tháng này"}
+              </Button>
+            </div>
           </div>
 
           {/* Summary cards */}
@@ -580,6 +599,16 @@ export function PLClient({
         companyId={company.id}
         selectedMonth={selectedMonth}
         existingRecord={currentRecord}
+        onSuccess={handlePLSuccess}
+      />
+
+      {/* API Sync Dialog */}
+      <ApiSyncDialog
+        open={syncOpen}
+        onClose={() => setSyncOpen(false)}
+        companyId={company.id}
+        selectedMonth={selectedMonth}
+        currentRecord={currentRecord}
         onSuccess={handlePLSuccess}
       />
 
