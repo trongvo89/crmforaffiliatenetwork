@@ -158,14 +158,14 @@ function CampaignFormDialog({
     let result;
     if (existing) {
       result = await supabase
-        .from("campaigns")
+        .from("crm_campaigns")
         .update(payload)
         .eq("id", existing.id)
         .select(`*, advertisers(id, name)`)
         .single();
     } else {
       result = await supabase
-        .from("campaigns")
+        .from("crm_campaigns")
         .insert(payload)
         .select(`*, advertisers(id, name)`)
         .single();
@@ -458,7 +458,7 @@ export function CampaignSection({
     setDeletingId(campaign.id);
     const supabase = createClient();
     const { error } = await supabase
-      .from("campaigns")
+      .from("crm_campaigns")
       .delete()
       .eq("id", campaign.id)
       .eq("company_id", companyId);

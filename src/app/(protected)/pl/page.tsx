@@ -67,7 +67,7 @@ export default async function PLPage() {
 
   // Fetch campaigns with advertiser info
   const { data: campaigns } = await supabase
-    .from("campaigns")
+    .from("crm_campaigns")
     .select(`
       *,
       advertisers (id, name)

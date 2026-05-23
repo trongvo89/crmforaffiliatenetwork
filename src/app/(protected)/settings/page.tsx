@@ -1,13 +1,23 @@
-export default function SettingsPage() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Cài đặt</h1>
-        <p className="text-sm text-muted-foreground">Module đang được phát triển...</p>
-      </div>
-      <div className="flex h-64 items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-white">
-        <p className="text-gray-400">Sẽ hoàn thành trong các tuần tiếp theo</p>
-      </div>
-    </div>
-  );
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { SettingsClient } from "./settings-client";
+
+export const dynamic = "force-dynamic";
+
+export default async function SettingsPage() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  const { data: company } = await supabase
+    .from("companies")
+    .select("*")
+    .limit(1)
+    .maybeSingle();
+
+  return <SettingsClient initialCompany={company} />;
 }
