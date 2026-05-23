@@ -31,7 +31,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
 import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 
 export interface Campaign {

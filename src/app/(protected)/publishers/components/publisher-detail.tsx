@@ -118,21 +118,10 @@ export function PublisherDetail({
     return () => {
       cancelled = true;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [publisher?.id, open]);
 
   if (!publisher) return null;
-
-  // Mask bank info: show only last 4 chars of each line
-  function maskBankInfo(info: string): string {
-    return info
-      .split("\n")
-      .map((line) => {
-        const stripped = line.trim();
-        if (stripped.length <= 4) return stripped;
-        return "*".repeat(stripped.length - 4) + stripped.slice(-4);
-      })
-      .join("\n");
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -116,7 +116,7 @@ export function ContactLog({ publisherId, initialEntries }: ContactLogProps) {
           <div className="absolute left-3.5 top-0 h-full w-px bg-gray-200" aria-hidden="true" />
 
           <ul className="space-y-4">
-            {entries.map((entry, index) => {
+            {entries.map((entry) => {
               const isSystem = entry.event_type === "system";
               return (
                 <li key={entry.id} className="relative flex gap-3 pl-8">

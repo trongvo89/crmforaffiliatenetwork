@@ -417,7 +417,7 @@ export function PLClient({
                       tickFormatter={(v) => `${v}M`}
                     />
                     <Tooltip
-                      formatter={(value: number) => [`${value.toLocaleString("vi-VN")}M`, ""]}
+                      formatter={(value) => [`${Number(value).toLocaleString("vi-VN")}M`, ""]}
                       contentStyle={{
                         border: "1px solid #e2e8f0",
                         borderRadius: "8px",

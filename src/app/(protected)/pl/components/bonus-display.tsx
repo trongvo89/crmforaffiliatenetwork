@@ -163,7 +163,7 @@ export function BonusDisplay({ company, employees, selectedMonth, plRecord }: Bo
         <AlertCircle className="h-8 w-8 text-gray-400" />
         <p className="text-muted-foreground font-medium">Chưa có dữ liệu P&L cho {monthLabel}</p>
         <p className="text-sm text-gray-400 text-center max-w-xs">
-          Vui lòng nhập dữ liệu P&L ở tab "Tổng quan P&L" để tính bonus tự động
+          Vui lòng nhập dữ liệu P&L ở tab &ldquo;Tổng quan P&L&rdquo; để tính bonus tự động
         </p>
       </div>
     );

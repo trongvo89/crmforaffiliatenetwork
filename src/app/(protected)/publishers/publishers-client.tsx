@@ -1,8 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { createClient } from "@/lib/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,11 +81,8 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
 
 // ─── Tier filter options ──────────────────────────────────────────────────────
 
-const TIER_FILTERS = ["all", "Platinum", "Gold", "Silver", "Bronze"] as const;
-type TierFilter = (typeof TIER_FILTERS)[number];
-
-const STATUS_FILTERS = ["all", "active", "inactive"] as const;
-type StatusFilter = (typeof STATUS_FILTERS)[number];
+type TierFilter = "all" | "Platinum" | "Gold" | "Silver" | "Bronze";
+type StatusFilter = "all" | "active" | "inactive";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -102,8 +97,6 @@ export function PublishersClient({
   initialPublishers,
   companyId,
 }: PublishersClientProps) {
-  const { toast } = useToast();
-
   // State
   const [publishers, setPublishers] =
     React.useState<Publisher[]>(initialPublishers);
