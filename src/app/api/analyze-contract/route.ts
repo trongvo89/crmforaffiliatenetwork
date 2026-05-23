@@ -29,8 +29,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Fetch contract from Supabase ──────────────────────────────────────────
+    // ── Auth guard ────────────────────────────────────────────────────────────
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // ── Fetch contract from Supabase ──────────────────────────────────────────
 
     const { data: contract, error: fetchError } = await supabase
       .from("contracts")
@@ -111,12 +117,10 @@ export async function POST(request: Request) {
     let parsed: Omit<AnalysisResult, "analyzed_at">;
 
     try {
-      // Strip any accidental markdown fences before parsing
-      const cleaned = rawText
-        .trim()
-        .replace(/^```(?:json)?\s*/i, "")
-        .replace(/\s*```$/, "");
-      parsed = JSON.parse(cleaned);
+      // Extract first JSON object regardless of markdown fences or preamble text
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("No JSON object found in AI response");
+      parsed = JSON.parse(jsonMatch[0]);
     } catch {
       return NextResponse.json(
         {

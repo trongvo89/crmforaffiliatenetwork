@@ -72,6 +72,7 @@ export function HrClient({ initialEmployees, companyId }: HrClientProps) {
   const [employees, setEmployees] = React.useState<Employee[]>(initialEmployees);
   const [formOpen, setFormOpen] = React.useState(false);
   const [editingEmployee, setEditingEmployee] = React.useState<Employee | null>(null);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   const activeCount = employees.filter((e) => e.is_active).length;
   const inactiveCount = employees.length - activeCount;
@@ -108,20 +109,28 @@ export function HrClient({ initialEmployees, companyId }: HrClientProps) {
   }
 
   async function handleDelete(emp: Employee) {
+    if (deletingId) return;
     if (!window.confirm(`Xóa nhân viên "${emp.name}"?`)) return;
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("employees")
-      .delete()
-      .eq("id", emp.id)
-      .eq("company_id", companyId);
+    setDeletingId(emp.id);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("employees")
+        .delete()
+        .eq("id", emp.id)
+        .eq("company_id", companyId);
 
-    if (error) {
-      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
-      return;
+      if (error) {
+        toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+        return;
+      }
+      setEmployees((prev) => prev.filter((e) => e.id !== emp.id));
+      toast({ title: "Đã xóa nhân viên" });
+    } catch (err: unknown) {
+      toast({ title: "Lỗi", description: err instanceof Error ? err.message : "Đã xảy ra lỗi", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
     }
-    setEmployees((prev) => prev.filter((e) => e.id !== emp.id));
-    toast({ title: "Đã xóa nhân viên" });
   }
 
   async function handleToggleActive(emp: Employee) {

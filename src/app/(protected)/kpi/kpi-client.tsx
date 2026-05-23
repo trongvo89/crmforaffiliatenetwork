@@ -164,7 +164,7 @@ function calcBonusByRole(
   };
 
   const roleBreakdown: RoleBonusInfo[] = roles.map((role) => {
-    const activeInRole = employees.filter((e) => e.role === role);
+    const activeInRole = employees.filter((e) => e.role === role && e.is_active);
     const rolePool = bonusPool * (rolePctMap[role] / 100);
     const threshold = company.min_kpi_threshold;
 
@@ -229,38 +229,41 @@ export function KpiClient({
   const fetchMonthData = useCallback(
     async (month: string) => {
       setLoadingRecords(true);
-      const supabase = createClient();
-      const periodMonthFirst = `${month}-01`;
+      try {
+        const supabase = createClient();
+        const periodMonthFirst = `${month}-01`;
 
-      const employeeIds = employees.map((e) => e.id);
+        const employeeIds = employees.map((e) => e.id);
 
-      // Fetch KPI records
-      if (employeeIds.length > 0) {
-        const { data: kpiRows } = await supabase
-          .from("kpi_records")
-          .select("*")
-          .in("employee_id", employeeIds)
-          .eq("period_month", periodMonthFirst);
+        // Fetch KPI records
+        if (employeeIds.length > 0) {
+          const { data: kpiRows } = await supabase
+            .from("kpi_records")
+            .select("*")
+            .in("employee_id", employeeIds)
+            .eq("period_month", periodMonthFirst);
 
-        const map: Record<string, KpiRecord> = {};
-        for (const row of kpiRows ?? []) {
-          map[row.employee_id] = row as KpiRecord;
+          const map: Record<string, KpiRecord> = {};
+          for (const row of kpiRows ?? []) {
+            map[row.employee_id] = row as KpiRecord;
+          }
+          setKpiData(map);
+        } else {
+          setKpiData({});
         }
-        setKpiData(map);
-      } else {
-        setKpiData({});
+
+        // Fetch PL monthly
+        const { data: plRows } = await supabase
+          .from("pl_monthly")
+          .select("*")
+          .eq("company_id", companyId)
+          .eq("period_month", periodMonthFirst)
+          .limit(1);
+
+        setPlRecord(plRows && plRows.length > 0 ? (plRows[0] as PLRecord) : null);
+      } finally {
+        setLoadingRecords(false);
       }
-
-      // Fetch PL monthly
-      const { data: plRows } = await supabase
-        .from("pl_monthly")
-        .select("*")
-        .eq("company_id", companyId)
-        .eq("period_month", periodMonthFirst)
-        .limit(1);
-
-      setPlRecord(plRows && plRows.length > 0 ? (plRows[0] as PLRecord) : null);
-      setLoadingRecords(false);
     },
     [employees, companyId]
   );
@@ -276,7 +279,10 @@ export function KpiClient({
   }
 
   function handleMonthNext() {
-    setSelectedMonth((m) => nextMonth(m));
+    setSelectedMonth((m) => {
+      const next = nextMonth(m);
+      return next > currentMonthValue() ? m : next;
+    });
   }
 
   function handleKpiSaved(rec: KpiRecord) {

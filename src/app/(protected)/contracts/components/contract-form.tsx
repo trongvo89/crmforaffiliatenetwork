@@ -333,7 +333,7 @@ export function ContractForm({
               <Input
                 id="contract_file"
                 type="file"
-                accept=".pdf,.doc,.docx"
+                accept=".pdf"
                 className="hidden"
                 onChange={handleFileChange}
                 disabled={uploading || submitting}

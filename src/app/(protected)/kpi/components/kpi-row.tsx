@@ -94,7 +94,7 @@ export function KpiRow({ employee, company, record, selectedMonth, onSaved }: Kp
     record?.kpi_3_actual != null ? String(record.kpi_3_actual) : ""
   );
 
-  // Sync when record prop changes (month navigation)
+  // Sync when record or month changes — selectedMonth ensures null→null transitions also reset
   useEffect(() => {
     setKpi1Label(record?.kpi_1_label ?? "");
     setKpi1Target(record?.kpi_1_target != null ? String(record.kpi_1_target) : "");
@@ -105,7 +105,7 @@ export function KpiRow({ employee, company, record, selectedMonth, onSaved }: Kp
     setKpi3Label(record?.kpi_3_label ?? "");
     setKpi3Target(record?.kpi_3_target != null ? String(record.kpi_3_target) : "");
     setKpi3Actual(record?.kpi_3_actual != null ? String(record.kpi_3_actual) : "");
-  }, [record]);
+  }, [record, selectedMonth]);
 
   const parseNum = (val: string): number | null => {
     const n = parseFloat(val);
