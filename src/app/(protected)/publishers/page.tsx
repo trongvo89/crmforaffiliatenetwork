@@ -1,13 +1,40 @@
-export default function PublishersPage() {
+import { createClient } from "@/lib/supabase/server";
+import { PublishersClient } from "./publishers-client";
+import type { Publisher } from "./components/publisher-form";
+
+export const dynamic = "force-dynamic";
+
+export default async function PublishersPage() {
+  const supabase = await createClient();
+
+  // Fetch company (first record)
+  const { data: companyData } = await supabase
+    .from("companies")
+    .select("id")
+    .limit(1)
+    .maybeSingle();
+
+  const companyId: string | null = companyData?.id ?? null;
+
+  // Fetch publishers for this company
+  let initialPublishers: Publisher[] = [];
+
+  if (companyId) {
+    const { data, error } = await supabase
+      .from("publishers")
+      .select("*")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      initialPublishers = data as Publisher[];
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Publisher CRM</h1>
-        <p className="text-sm text-muted-foreground">Module đang được phát triển...</p>
-      </div>
-      <div className="flex h-64 items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-white">
-        <p className="text-gray-400">Sẽ hoàn thành trong các tuần tiếp theo</p>
-      </div>
-    </div>
+    <PublishersClient
+      initialPublishers={initialPublishers}
+      companyId={companyId}
+    />
   );
 }

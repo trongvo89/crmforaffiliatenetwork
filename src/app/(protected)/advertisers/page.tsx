@@ -1,13 +1,66 @@
-export default function AdvertisersPage() {
+import { createClient } from "@/lib/supabase/server";
+import { AdvertisersClient } from "./advertisers-client";
+import type { Advertiser } from "./components/advertiser-form";
+import type { Offer } from "./components/offer-form";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdvertisersPage() {
+  const supabase = await createClient();
+
+  // ── 1. Fetch company_id (first company record) ────────────────────────────
+  const { data: companyRow } = await supabase
+    .from("companies")
+    .select("id")
+    .limit(1)
+    .maybeSingle();
+
+  const companyId: string = companyRow?.id ?? "";
+
+  // ── 2. Fetch advertisers ──────────────────────────────────────────────────
+  const { data: advertisersData, error: advError } = await supabase
+    .from("advertisers")
+    .select("*")
+    .order("name", { ascending: true });
+
+  if (advError) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Advertiser &amp; Offer</h1>
+        </div>
+        <div className="flex items-center justify-center rounded-xl border border-red-200 bg-red-50 p-8">
+          <p className="text-sm text-red-700">
+            Lỗi tải dữ liệu advertiser: {advError.message}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const advertisers: Advertiser[] = (advertisersData ?? []) as Advertiser[];
+  const advertiserIds = advertisers.map((a) => a.id);
+
+  // ── 3. Fetch all offers for those advertisers ─────────────────────────────
+  let offers: Offer[] = [];
+  if (advertiserIds.length > 0) {
+    const { data: offersData, error: offError } = await supabase
+      .from("offers")
+      .select("*")
+      .in("advertiser_id", advertiserIds)
+      .order("created_at", { ascending: false });
+
+    if (!offError) {
+      offers = (offersData ?? []) as Offer[];
+    }
+  }
+
+  // ── 4. Render ─────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Advertiser & Offer</h1>
-        <p className="text-sm text-muted-foreground">Module đang được phát triển...</p>
-      </div>
-      <div className="flex h-64 items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-white">
-        <p className="text-gray-400">Sẽ hoàn thành trong các tuần tiếp theo</p>
-      </div>
-    </div>
+    <AdvertisersClient
+      initialAdvertisers={advertisers}
+      initialOffers={offers}
+      companyId={companyId}
+    />
   );
 }
