@@ -86,7 +86,7 @@ export function BonusDisplay({ company, employees, selectedMonth, plRecord }: Bo
     const netProfit = grossProfit - opex;
 
     const profitTarget = company.profit_target ?? 300;
-    const isAboveTarget = netProfit > profitTarget;
+    const isAboveTarget = netProfit >= profitTarget;
     const excess = isAboveTarget ? netProfit - profitTarget : 0;
     const bonusPool = excess * ((company.bonus_pool_pct ?? 10) / 100);
 

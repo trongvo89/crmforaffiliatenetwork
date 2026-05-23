@@ -457,7 +457,11 @@ export function CampaignSection({
     if (!confirm(`Xóa campaign "${campaign.name}"? Dữ liệu P&L liên quan cũng sẽ bị xóa.`)) return;
     setDeletingId(campaign.id);
     const supabase = createClient();
-    const { error } = await supabase.from("campaigns").delete().eq("id", campaign.id);
+    const { error } = await supabase
+      .from("campaigns")
+      .delete()
+      .eq("id", campaign.id)
+      .eq("company_id", companyId);
     setDeletingId(null);
 
     if (error) {

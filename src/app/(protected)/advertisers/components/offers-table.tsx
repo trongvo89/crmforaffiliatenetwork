@@ -157,6 +157,7 @@ export function OffersTable({
         .from("offers")
         .update({ status: nextStatus, updated_at: new Date().toISOString() })
         .eq("id", offer.id)
+        .eq("advertiser_id", advertiserId)
         .select()
         .single();
 
@@ -188,7 +189,11 @@ export function OffersTable({
     setLoadingId(offer.id);
     try {
       const supabase = createClient();
-      const { error } = await supabase.from("offers").delete().eq("id", offer.id);
+      const { error } = await supabase
+        .from("offers")
+        .delete()
+        .eq("id", offer.id)
+        .eq("advertiser_id", advertiserId);
       if (error) throw error;
       onOffersChange(offers.filter((o) => o.id !== offer.id));
       toast({ title: "Đã xóa offer", description: `"${offer.name}" đã được xóa.` });

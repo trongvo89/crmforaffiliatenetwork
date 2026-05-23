@@ -163,6 +163,7 @@ export function PublisherForm({
           .from("publishers")
           .update(payload)
           .eq("id", publisher.id)
+          .eq("company_id", publisher.company_id)
           .select()
           .single();
 
@@ -170,11 +171,14 @@ export function PublisherForm({
 
         // Log tier change if tier changed
         if (publisher.tier !== form.tier) {
-          await supabase.from("publisher_contact_log").insert({
+          const { error: logError } = await supabase.from("publisher_contact_log").insert({
             publisher_id: publisher.id,
             event_type: "system",
             note: `Tier đã thay đổi từ ${publisher.tier} sang ${form.tier}`,
           });
+          if (logError) {
+            console.error("Failed to log tier change:", logError.message);
+          }
         }
 
         toast({
@@ -192,11 +196,14 @@ export function PublisherForm({
         if (error) throw error;
 
         // System log entry for new publisher
-        await supabase.from("publisher_contact_log").insert({
+        const { error: logError } = await supabase.from("publisher_contact_log").insert({
           publisher_id: data.id,
           event_type: "system",
           note: "Publisher được thêm vào hệ thống",
         });
+        if (logError) {
+          console.error("Failed to create initial contact log:", logError.message);
+        }
 
         toast({
           title: "Thêm thành công",

@@ -39,6 +39,11 @@ export function ContactLog({ publisherId, initialEntries }: ContactLogProps) {
   const [note, setNote] = React.useState("");
   const [isSaving, setIsSaving] = React.useState(false);
 
+  // Sync entries when the parent switches publishers (initialEntries ref changes)
+  React.useEffect(() => {
+    setEntries(initialEntries);
+  }, [initialEntries]);
+
   async function handleAddNote(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = note.trim();

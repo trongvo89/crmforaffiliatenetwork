@@ -21,6 +21,7 @@ export default async function AdvertisersPage() {
   const { data: advertisersData, error: advError } = await supabase
     .from("advertisers")
     .select("*")
+    .eq("company_id", companyId)
     .order("name", { ascending: true });
 
   if (advError) {

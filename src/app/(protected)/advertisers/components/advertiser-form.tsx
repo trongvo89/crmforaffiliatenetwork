@@ -129,6 +129,7 @@ export function AdvertiserForm({
           .from("advertisers")
           .update(payload)
           .eq("id", advertiser.id)
+          .eq("company_id", advertiser.company_id)
           .select()
           .single();
 

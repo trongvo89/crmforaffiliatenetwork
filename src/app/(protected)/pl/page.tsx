@@ -83,11 +83,15 @@ export default async function PLPage() {
     .eq("is_active", true)
     .order("name");
 
-  // Fetch all offers
-  const { data: offers } = await supabase
-    .from("offers")
-    .select("id, name, advertiser_id, status")
-    .order("name");
+  // Fetch all offers scoped to this company's advertisers
+  const advertiserIds = (advertisers ?? []).map((a) => a.id);
+  const { data: offers } = advertiserIds.length > 0
+    ? await supabase
+        .from("offers")
+        .select("id, name, advertiser_id, status")
+        .in("advertiser_id", advertiserIds)
+        .order("name")
+    : { data: [] };
 
   // Fetch campaign P&L for last 6 months
   const campaignIds = (campaigns ?? []).map((c) => c.id);
