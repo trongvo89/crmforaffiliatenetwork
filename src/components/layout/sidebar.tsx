@@ -19,6 +19,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Kanban,
+  GitPullRequest,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -31,9 +33,11 @@ const navItems = [
     group: "Vận hành",
     items: [
       { href: "/pl", label: "P&L & Dòng tiền", icon: TrendingUp },
+      { href: "/pipeline", label: "Pipeline BD/PM", icon: GitPullRequest },
       { href: "/publishers", label: "Publisher CRM", icon: Users },
       { href: "/advertisers", label: "Advertiser & Offer", icon: Building2 },
       { href: "/reconciliation", label: "Đối soát", icon: FileCheck },
+      { href: "/tasks", label: "Công việc", icon: Kanban },
     ],
   },
   {
