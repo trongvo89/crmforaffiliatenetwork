@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { TasksClient } from "./tasks-client";
 import type { Task, Employee } from "./tasks-client";
+import { AccessDenied } from "@/components/access-denied";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,17 @@ export default async function TasksPage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  // Permission check
+  const { data: userPerms } = await supabase
+    .from("user_permissions")
+    .select("is_super_admin, allowed_modules")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!userPerms?.is_super_admin && !userPerms?.allowed_modules?.includes("tasks")) {
+    return <AccessDenied label="Công việc" />;
+  }
 
   const { data: company } = await supabase
     .from("companies")

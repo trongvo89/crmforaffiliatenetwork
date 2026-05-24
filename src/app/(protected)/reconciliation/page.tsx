@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { ReconciliationClient } from "./reconciliation-client";
 import type { ReconSession } from "./components/session-form";
+import { AccessDenied } from "@/components/access-denied";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,17 @@ export default async function ReconciliationPage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  // Permission check
+  const { data: userPerms } = await supabase
+    .from("user_permissions")
+    .select("is_super_admin, allowed_modules")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!userPerms?.is_super_admin && !userPerms?.allowed_modules?.includes("reconciliation")) {
+    return <AccessDenied label="Đối soát" />;
+  }
 
   // Fetch company
   const { data: companyRow } = await supabase

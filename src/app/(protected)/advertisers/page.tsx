@@ -1,12 +1,31 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { AdvertisersClient } from "./advertisers-client";
 import type { Advertiser } from "./components/advertiser-form";
 import type { Offer } from "./components/offer-form";
+import { AccessDenied } from "@/components/access-denied";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdvertisersPage() {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  // Permission check
+  const { data: userPerms } = await supabase
+    .from("user_permissions")
+    .select("is_super_admin, allowed_modules")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!userPerms?.is_super_admin && !userPerms?.allowed_modules?.includes("advertisers")) {
+    return <AccessDenied label="Advertiser & Offer" />;
+  }
 
   // ── 1. Fetch company_id (first company record) ────────────────────────────
   const { data: companyRow } = await supabase

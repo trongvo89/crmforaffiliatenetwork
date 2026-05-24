@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { PipelineClient } from "./pipeline-client";
 import { redirect } from "next/navigation";
+import { AccessDenied } from "@/components/access-denied";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,17 @@ export default async function PipelinePage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // Permission check
+  const { data: userPerms } = await supabase
+    .from("user_permissions")
+    .select("is_super_admin, allowed_modules")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!userPerms?.is_super_admin && !userPerms?.allowed_modules?.includes("pipeline")) {
+    return <AccessDenied label="Pipeline BD/PM" />;
+  }
 
   const { data: company } = await supabase
     .from("companies")
