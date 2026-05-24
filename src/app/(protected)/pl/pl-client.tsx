@@ -30,11 +30,12 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { TrendingUp, TrendingDown, Minus, PencilLine, BarChart2, AlertCircle, RefreshCw } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, PencilLine, BarChart2, AlertCircle, RefreshCw, Upload } from "lucide-react";
 import { PLForm } from "./components/pl-form";
 import { CampaignSection, type Campaign, type CampaignPL } from "./components/campaign-section";
 import { BonusDisplay } from "./components/bonus-display";
 import { ApiSyncDialog } from "./components/api-sync-dialog";
+import { PlImportDialog } from "./components/pl-import-dialog";
 import { Toaster } from "@/components/ui/toaster";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -219,6 +220,7 @@ export function PLClient({
   const [campaignPL, setCampaignPL] = useState<CampaignPL[]>(initialCampaignPL);
   const [formOpen, setFormOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
+  const [plImportOpen, setPlImportOpen] = useState(false);
 
   const monthOptions = useMemo(() => generateMonthOptions(), []);
 
@@ -342,6 +344,10 @@ export function PLClient({
                   Đồng bộ API
                 </Button>
               )}
+              <Button variant="outline" onClick={() => setPlImportOpen(true)} size="sm">
+                <Upload className="h-4 w-4 mr-1.5" />
+                Import CSV
+              </Button>
               <Button onClick={() => setFormOpen(true)} size="sm">
                 <PencilLine className="h-4 w-4 mr-1.5" />
                 {currentRecord ? "Sửa P&L tháng này" : "Nhập P&L tháng này"}
@@ -610,6 +616,14 @@ export function PLClient({
         selectedMonth={selectedMonth}
         currentRecord={currentRecord}
         onSuccess={handlePLSuccess}
+      />
+
+      {/* CSV Import Dialog */}
+      <PlImportDialog
+        open={plImportOpen}
+        onOpenChange={setPlImportOpen}
+        companyId={company.id}
+        onImported={() => window.location.reload()}
       />
 
       <Toaster />

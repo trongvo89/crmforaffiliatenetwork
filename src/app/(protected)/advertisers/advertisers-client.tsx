@@ -17,9 +17,11 @@ import {
   Building2,
   Loader2,
   Users,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdvertiserForm, type Advertiser } from "./components/advertiser-form";
+import { AdvertiserImportDialog } from "./components/advertiser-import-dialog";
 import { OffersTable } from "./components/offers-table";
 import { type Offer } from "./components/offer-form";
 
@@ -200,6 +202,9 @@ export function AdvertisersClient({
   const [advertiserFormOpen, setAdvertiserFormOpen] = React.useState(false);
   const [editingAdvertiser, setEditingAdvertiser] = React.useState<Advertiser | null>(null);
 
+  // import dialog
+  const [importOpen, setImportOpen] = React.useState(false);
+
   // per-row loading state for toggle active
   const [togglingIds, setTogglingIds] = React.useState<Set<string>>(new Set());
 
@@ -291,6 +296,10 @@ export function AdvertisersClient({
     setOffersMap((prev) => ({ ...prev, [advertiserId]: offers }));
   }
 
+  function handleImported(newAdvs: Advertiser[]) {
+    setAdvertisers((prev) => [...newAdvs, ...prev]);
+  }
+
   // ── counts for filter tabs ─────────────────────────────────────────────────
   const activeCount = advertisers.filter((a) => a.is_active).length;
   const totalCount = advertisers.length;
@@ -306,10 +315,16 @@ export function AdvertisersClient({
             Quản lý advertiser và offer của mạng lưới affiliate
           </p>
         </div>
-        <Button onClick={handleAddAdvertiser} className="gap-2 shrink-0">
-          <Plus className="h-4 w-4" />
-          Thêm Advertiser
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2 shrink-0">
+            <Upload className="h-4 w-4" />
+            Import CSV
+          </Button>
+          <Button onClick={handleAddAdvertiser} className="gap-2 shrink-0">
+            <Plus className="h-4 w-4" />
+            Thêm Advertiser
+          </Button>
+        </div>
       </div>
 
       {/* Search + filter */}
@@ -406,6 +421,14 @@ export function AdvertisersClient({
         advertiser={editingAdvertiser}
         companyId={companyId}
         onSaved={handleAdvertiserSaved}
+      />
+
+      {/* Advertiser import dialog */}
+      <AdvertiserImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        companyId={companyId}
+        onImported={handleImported}
       />
     </div>
   );

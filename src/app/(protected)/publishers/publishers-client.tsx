@@ -15,6 +15,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PublisherForm, type Publisher } from "./components/publisher-form";
 import { PublisherDetail } from "./components/publisher-detail";
+import { PublisherImportDialog } from "./components/publisher-import-dialog";
 import {
   Plus,
   Search,
@@ -23,6 +24,7 @@ import {
   Users,
   ChevronDown,
   ChevronUp,
+  Upload,
 } from "lucide-react";
 
 // ─── Tier badge ──────────────────────────────────────────────────────────────
@@ -104,6 +106,9 @@ export function PublishersClient({
   const [tierFilter, setTierFilter] = React.useState<TierFilter>("all");
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
 
+  // Import dialog
+  const [importOpen, setImportOpen] = React.useState(false);
+
   // Form dialog
   const [formOpen, setFormOpen] = React.useState(false);
   const [editingPublisher, setEditingPublisher] =
@@ -149,6 +154,10 @@ export function PublishersClient({
     if (selectedPublisher?.id === saved.id) {
       setSelectedPublisher(saved);
     }
+  }
+
+  function handleImported(newPubs: Publisher[]) {
+    setPublishers((prev) => [...newPubs, ...prev]);
   }
 
   function handleSort(key: keyof Publisher) {
@@ -262,6 +271,10 @@ export function PublishersClient({
             Quản lý danh sách publisher và nhật ký liên lạc
           </p>
         </div>
+        <Button variant="outline" onClick={() => setImportOpen(true)} className="shrink-0">
+          <Upload className="mr-2 h-4 w-4" />
+          Import CSV
+        </Button>
         <Button onClick={handleAdd} className="shrink-0">
           <Plus className="mr-2 h-4 w-4" />
           Thêm Publisher
@@ -531,6 +544,14 @@ export function PublishersClient({
           </div>
         )}
       </div>
+
+      {/* Import Dialog */}
+      <PublisherImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        companyId={companyId ?? ""}
+        onImported={handleImported}
+      />
 
       {/* Form Dialog */}
       <PublisherForm
