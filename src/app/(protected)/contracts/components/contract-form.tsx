@@ -113,7 +113,13 @@ export function ContractForm({
     setUploading(true);
 
     try {
-      const path = `${companyId}/${Date.now()}_${file.name}`;
+      const safeName = file.name
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/đ/gi, "d")
+        .replace(/[^a-zA-Z0-9._-]/g, "_")
+        .replace(/_+/g, "_");
+      const path = `${companyId}/${Date.now()}_${safeName}`;
       const { data, error } = await supabase.storage
         .from("contracts")
         .upload(path, file, { upsert: true });
@@ -333,7 +339,7 @@ export function ContractForm({
               <Input
                 id="contract_file"
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.doc,.docx"
                 className="hidden"
                 onChange={handleFileChange}
                 disabled={uploading || submitting}

@@ -1066,7 +1066,7 @@ export function TrafficClient({
                   <Input
                     id="csv-file"
                     type="file"
-                    accept=".csv,.xlsx"
+                    accept=".csv"
                     onChange={handleCsvFile}
                     className="cursor-pointer"
                   />

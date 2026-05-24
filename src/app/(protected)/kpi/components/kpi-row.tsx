@@ -12,19 +12,37 @@ import type { Employee, Company, KpiRecord } from "../kpi-client";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const ROLE_LABELS: Record<Employee["role"], string> = {
+  head_account: "Head of Account",
+  head_cs: "Head of CS",
+  account_manager: "AM",
+  publisher_manager: "PM",
+  koc_manager: "KOC Mgr",
+  it: "IT",
+  intern_account: "Intern AM",
+  intern_publisher: "Intern PM",
+  intern_koc: "Intern KOC",
+  admin: "Admin",
+  custom: "Khác",
   pm: "PM",
   bd: "BD",
   am: "AM",
-  admin: "Admin",
-  custom: "Khác",
 };
 
 const ROLE_BADGE: Record<Employee["role"], string> = {
+  head_account: "bg-red-100 text-red-700",
+  head_cs: "bg-rose-100 text-rose-700",
+  account_manager: "bg-blue-100 text-blue-700",
+  publisher_manager: "bg-purple-100 text-purple-700",
+  koc_manager: "bg-pink-100 text-pink-700",
+  it: "bg-cyan-100 text-cyan-700",
+  intern_account: "bg-sky-100 text-sky-600",
+  intern_publisher: "bg-violet-100 text-violet-600",
+  intern_koc: "bg-fuchsia-100 text-fuchsia-600",
+  admin: "bg-orange-100 text-orange-700",
+  custom: "bg-gray-100 text-gray-600",
   pm: "bg-blue-100 text-blue-700",
   bd: "bg-purple-100 text-purple-700",
   am: "bg-green-100 text-green-700",
-  admin: "bg-orange-100 text-orange-700",
-  custom: "bg-gray-100 text-gray-600",
 };
 
 function computeKpiScore(target: number | null, actual: number | null): number | null {

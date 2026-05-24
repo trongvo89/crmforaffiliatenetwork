@@ -266,6 +266,7 @@ export function AdvertisersClient({
         .from("advertisers")
         .update({ is_active: !adv.is_active, updated_at: new Date().toISOString() })
         .eq("id", adv.id)
+        .eq("company_id", companyId)
         .select()
         .single();
 

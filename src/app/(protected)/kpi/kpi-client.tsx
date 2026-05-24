@@ -20,12 +20,28 @@ import { KpiRow } from "./components/kpi-row";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export type EmployeeRole =
+  | "head_account"
+  | "head_cs"
+  | "account_manager"
+  | "publisher_manager"
+  | "koc_manager"
+  | "it"
+  | "intern_account"
+  | "intern_publisher"
+  | "intern_koc"
+  | "admin"
+  | "custom"
+  | "pm"
+  | "bd"
+  | "am";
+
 export interface Employee {
   id: string;
   company_id: string;
   name: string;
   email: string | null;
-  role: "pm" | "bd" | "am" | "admin" | "custom";
+  role: EmployeeRole;
   custom_role_name: string | null;
   base_salary: number | null;
   is_active: boolean;
@@ -108,20 +124,38 @@ export function computeKpiScore(record: KpiRecord | null): number | null {
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
 
-const ROLE_LABELS: Record<Employee["role"], string> = {
+const ROLE_LABELS: Record<EmployeeRole, string> = {
+  head_account: "Head of Account",
+  head_cs: "Head of Client Service",
+  account_manager: "Account Manager",
+  publisher_manager: "Publisher Manager",
+  koc_manager: "KOC Manager",
+  it: "IT",
+  intern_account: "Intern Account Manager",
+  intern_publisher: "Intern Publisher Manager",
+  intern_koc: "Intern KOC Manager",
+  admin: "Admin",
+  custom: "Khác",
   pm: "Project Manager",
   bd: "Business Development",
   am: "Account Manager",
-  admin: "Admin",
-  custom: "Khác",
 };
 
-const ROLE_COLORS: Record<Employee["role"], { badge: string; text: string; bg: string }> = {
+const ROLE_COLORS: Record<EmployeeRole, { badge: string; text: string; bg: string }> = {
+  head_account: { badge: "bg-red-100 text-red-700", text: "text-red-700", bg: "bg-red-100" },
+  head_cs: { badge: "bg-rose-100 text-rose-700", text: "text-rose-700", bg: "bg-rose-100" },
+  account_manager: { badge: "bg-blue-100 text-blue-700", text: "text-blue-700", bg: "bg-blue-100" },
+  publisher_manager: { badge: "bg-purple-100 text-purple-700", text: "text-purple-700", bg: "bg-purple-100" },
+  koc_manager: { badge: "bg-pink-100 text-pink-700", text: "text-pink-700", bg: "bg-pink-100" },
+  it: { badge: "bg-cyan-100 text-cyan-700", text: "text-cyan-700", bg: "bg-cyan-100" },
+  intern_account: { badge: "bg-sky-100 text-sky-600", text: "text-sky-600", bg: "bg-sky-100" },
+  intern_publisher: { badge: "bg-violet-100 text-violet-600", text: "text-violet-600", bg: "bg-violet-100" },
+  intern_koc: { badge: "bg-fuchsia-100 text-fuchsia-600", text: "text-fuchsia-600", bg: "bg-fuchsia-100" },
+  admin: { badge: "bg-orange-100 text-orange-700", text: "text-orange-700", bg: "bg-orange-100" },
+  custom: { badge: "bg-gray-100 text-gray-600", text: "text-gray-600", bg: "bg-gray-100" },
   pm: { badge: "bg-blue-100 text-blue-700", text: "text-blue-700", bg: "bg-blue-100" },
   bd: { badge: "bg-purple-100 text-purple-700", text: "text-purple-700", bg: "bg-purple-100" },
   am: { badge: "bg-green-100 text-green-700", text: "text-green-700", bg: "bg-green-100" },
-  admin: { badge: "bg-orange-100 text-orange-700", text: "text-orange-700", bg: "bg-orange-100" },
-  custom: { badge: "bg-gray-100 text-gray-600", text: "text-gray-600", bg: "bg-gray-100" },
 };
 
 // ─── Bonus Calculation ────────────────────────────────────────────────────────
