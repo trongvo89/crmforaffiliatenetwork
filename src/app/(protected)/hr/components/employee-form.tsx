@@ -24,14 +24,19 @@ import {
 import { Loader2 } from "lucide-react";
 import type { Employee } from "../hr-client";
 
-const ROLE_LABELS = {
-  pm: "Project Manager",
-  bd: "Business Development",
-  am: "Account Manager",
-  admin: "Admin",
-  it: "IT",
-  custom: "Khác",
-};
+const NEW_ROLES: { value: Employee["role"]; label: string }[] = [
+  { value: "head_account",     label: "Head of Account" },
+  { value: "head_cs",          label: "Head of Client Service" },
+  { value: "account_manager",  label: "Account Manager" },
+  { value: "publisher_manager",label: "Publisher Manager" },
+  { value: "koc_manager",      label: "KOC Manager" },
+  { value: "it",               label: "IT" },
+  { value: "intern_account",   label: "Intern Account Manager" },
+  { value: "intern_publisher", label: "Intern Publisher Manager" },
+  { value: "intern_koc",       label: "Intern KOC Manager" },
+  { value: "admin",            label: "Admin" },
+  { value: "custom",           label: "Khác (tùy chỉnh)" },
+];
 
 interface EmployeeFormProps {
   open: boolean;
@@ -53,7 +58,7 @@ export function EmployeeForm({
 
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
-  const [role, setRole] = React.useState<Employee["role"]>("bd");
+  const [role, setRole] = React.useState<Employee["role"]>("account_manager");
   const [customRoleName, setCustomRoleName] = React.useState("");
   const [baseSalary, setBaseSalary] = React.useState("");
   const [telegramChatId, setTelegramChatId] = React.useState("");
@@ -74,7 +79,7 @@ export function EmployeeForm({
       } else {
         setName("");
         setEmail("");
-        setRole("bd");
+        setRole("account_manager");
         setCustomRoleName("");
         setBaseSalary("");
         setTelegramChatId("");
@@ -181,7 +186,7 @@ export function EmployeeForm({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.entries(ROLE_LABELS) as [Employee["role"], string][]).map(([value, label]) => (
+                {NEW_ROLES.map(({ value, label }) => (
                   <SelectItem key={value} value={value}>
                     {label}
                   </SelectItem>
