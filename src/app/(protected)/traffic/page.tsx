@@ -60,24 +60,28 @@ export default async function TrafficPage() {
     .toISOString()
     .split("T")[0];
 
-  const { data: metrics } = await supabase
-    .from("daily_metrics")
-    .select("*, publishers(id, name, tier)")
-    .eq("company_id", company.id)
-    .gte("date", thirtyDaysAgo)
-    .order("date", { ascending: false });
+  // Fetch all three in parallel
+  const [{ data: metrics }, { data: publishers }, { data: connections }] =
+    await Promise.all([
+      supabase
+        .from("daily_metrics")
+        .select("*, publishers(id, name, tier)")
+        .eq("company_id", company.id)
+        .gte("date", thirtyDaysAgo)
+        .order("date", { ascending: false }),
 
-  const { data: publishers } = await supabase
-    .from("publishers")
-    .select("id, name, tier")
-    .eq("company_id", company.id)
-    .eq("is_active", true)
-    .order("name");
+      supabase
+        .from("publishers")
+        .select("id, name, tier")
+        .eq("company_id", company.id)
+        .eq("is_active", true)
+        .order("name"),
 
-  const { data: connections } = await supabase
-    .from("api_connections")
-    .select("*")
-    .eq("company_id", company.id);
+      supabase
+        .from("api_connections")
+        .select("id, company_id, name, type, base_url, api_key, is_active, last_sync_at, created_at")
+        .eq("company_id", company.id),
+    ]);
 
   return (
     <TrafficClient

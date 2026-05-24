@@ -64,81 +64,75 @@ export default async function PLPage() {
     );
   }
 
-  // Fetch last 6 months of P&L data
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
   sixMonthsAgo.setDate(1);
   const fromDate = sixMonthsAgo.toISOString().split("T")[0];
 
-  const { data: plMonthly } = await supabase
-    .from("pl_monthly")
-    .select("*")
-    .eq("company_id", company.id)
-    .gte("period_month", fromDate)
-    .order("period_month", { ascending: true });
-
-  // Fetch campaigns with advertiser info
-  const { data: campaigns } = await supabase
-    .from("crm_campaigns")
-    .select(`
-      *,
-      advertisers (id, name)
-    `)
-    .eq("company_id", company.id)
-    .order("created_at", { ascending: false });
-
-  // Fetch advertisers for form
-  const { data: advertisers } = await supabase
-    .from("advertisers")
-    .select("id, name")
-    .eq("company_id", company.id)
-    .eq("is_active", true)
-    .order("name");
-
-  // Fetch all offers scoped to this company's advertisers
-  const advertiserIds = (advertisers ?? []).map((a) => a.id);
-  const { data: offers } = advertiserIds.length > 0
-    ? await supabase
-        .from("offers")
-        .select("id, name, advertiser_id, status")
-        .in("advertiser_id", advertiserIds)
-        .order("name")
-    : { data: [] };
-
-  // Fetch campaign P&L for last 6 months
-  const campaignIds = (campaigns ?? []).map((c) => c.id);
-  let campaignPL: Array<{
-    id: string;
-    campaign_id: string;
-    period_month: string;
-    revenue: number;
-    publisher_cost: number;
-  }> = [];
-
-  if (campaignIds.length > 0) {
-    const { data: cpl } = await supabase
-      .from("campaign_pl")
+  // Fetch all independent data in parallel
+  const [
+    { data: plMonthly },
+    { data: campaigns },
+    { data: advertisers },
+    { data: employees },
+    { data: apiConnections },
+  ] = await Promise.all([
+    supabase
+      .from("pl_monthly")
       .select("*")
-      .in("campaign_id", campaignIds)
+      .eq("company_id", company.id)
       .gte("period_month", fromDate)
-      .order("period_month", { ascending: true });
-    campaignPL = cpl ?? [];
-  }
+      .order("period_month", { ascending: true }),
 
-  // Fetch employees (active) for bonus calculation
-  const { data: employees } = await supabase
-    .from("employees")
-    .select("id, name, role, base_salary, is_active")
-    .eq("company_id", company.id)
-    .eq("is_active", true);
+    supabase
+      .from("crm_campaigns")
+      .select("*, advertisers (id, name)")
+      .eq("company_id", company.id)
+      .order("created_at", { ascending: false }),
 
-  // Fetch API connections for sync feature
-  const { data: apiConnections } = await supabase
-    .from("api_connections")
-    .select("*")
-    .eq("company_id", company.id)
-    .eq("is_active", true)
-    .order("created_at");
+    supabase
+      .from("advertisers")
+      .select("id, name")
+      .eq("company_id", company.id)
+      .eq("is_active", true)
+      .order("name"),
+
+    supabase
+      .from("employees")
+      .select("id, name, role, base_salary, is_active")
+      .eq("company_id", company.id)
+      .eq("is_active", true),
+
+    supabase
+      .from("api_connections")
+      .select("id, name, type, base_url, is_active, last_sync_at")
+      .eq("company_id", company.id)
+      .eq("is_active", true)
+      .order("created_at"),
+  ]);
+
+  // These depend on the results above — run them in parallel with each other
+  const advertiserIds = (advertisers ?? []).map((a) => a.id);
+  const campaignIds = (campaigns ?? []).map((c) => c.id);
+
+  const [{ data: offers }, { data: cpl }] = await Promise.all([
+    advertiserIds.length > 0
+      ? supabase
+          .from("offers")
+          .select("id, name, advertiser_id, status")
+          .in("advertiser_id", advertiserIds)
+          .order("name")
+      : Promise.resolve({ data: [] }),
+
+    campaignIds.length > 0
+      ? supabase
+          .from("campaign_pl")
+          .select("id, campaign_id, period_month, revenue, publisher_cost")
+          .in("campaign_id", campaignIds)
+          .gte("period_month", fromDate)
+          .order("period_month", { ascending: true })
+      : Promise.resolve({ data: [] }),
+  ]);
 
   return (
     <PLClient
@@ -147,7 +141,7 @@ export default async function PLPage() {
       campaigns={campaigns ?? []}
       advertisers={advertisers ?? []}
       offers={offers ?? []}
-      campaignPL={campaignPL}
+      campaignPL={cpl ?? []}
       employees={employees ?? []}
       apiConnections={apiConnections ?? []}
     />

@@ -435,48 +435,45 @@ export function TrafficClient({
   async function handleCsvImport() {
     if (csvRows.length === 0) return;
     setIsImporting(true);
-    let success = 0;
-    let errors = 0;
+
+    // Build all payloads, skip rows missing a date
+    const validRows: Record<string, unknown>[] = [];
+    let skipped = 0;
 
     for (const row of csvRows) {
-      try {
-        const publisherName = (row["publisher_name"] ?? row["publisher"] ?? "").trim();
-        const publisher = publisherName
-          ? publishers.find(
-              (p) => p.name.toLowerCase() === publisherName.toLowerCase()
-            )
-          : null;
+      const dateVal = (row["date"] ?? "").trim();
+      if (!dateVal) { skipped++; continue; }
 
-        const clicks = parseInt(row["clicks"] ?? "0", 10) || 0;
-        const conversions = parseInt(row["conversions"] ?? "0", 10) || 0;
-        const revenue = parseFloat(row["revenue"] ?? "0") || 0;
-        const epc = clicks > 0 ? revenue / clicks : 0;
-        const cr = clicks > 0 ? (conversions / clicks) * 100 : 0;
-        const dateVal = (row["date"] ?? "").trim();
+      const publisherName = (row["publisher_name"] ?? row["publisher"] ?? "").trim();
+      const publisher = publisherName
+        ? publishers.find((p) => p.name.toLowerCase() === publisherName.toLowerCase())
+        : null;
 
-        if (!dateVal) {
-          errors++;
-          continue;
-        }
+      const clicks = parseInt(row["clicks"] ?? "0", 10) || 0;
+      const conversions = parseInt(row["conversions"] ?? "0", 10) || 0;
+      const revenue = parseFloat(row["revenue"] ?? "0") || 0;
 
-        const { error } = await supabase.from("daily_metrics").insert({
-          company_id: companyId,
-          publisher_id: publisher?.id ?? null,
-          date: dateVal,
-          clicks,
-          conversions,
-          revenue,
-          epc,
-          cr,
-        });
+      validRows.push({
+        company_id: companyId,
+        publisher_id: publisher?.id ?? null,
+        date: dateVal,
+        clicks,
+        conversions,
+        revenue,
+        epc: clicks > 0 ? revenue / clicks : 0,
+        cr: clicks > 0 ? (conversions / clicks) * 100 : 0,
+      });
+    }
 
-        if (error) {
-          errors++;
-        } else {
-          success++;
-        }
-      } catch {
-        errors++;
+    let success = 0;
+    let errors = skipped;
+
+    if (validRows.length > 0) {
+      const { error } = await supabase.from("daily_metrics").insert(validRows);
+      if (error) {
+        errors += validRows.length;
+      } else {
+        success = validRows.length;
       }
     }
 

@@ -269,32 +269,34 @@ export function KpiClient({
 
         const employeeIds = employees.map((e) => e.id);
 
-        // Fetch KPI records
-        if (employeeIds.length > 0) {
-          const { data: kpiRows } = await supabase
-            .from("kpi_records")
+        // Fetch KPI records and PL monthly in parallel
+        const [kpiResult, plResult] = await Promise.all([
+          employeeIds.length > 0
+            ? supabase
+                .from("kpi_records")
+                .select("*")
+                .in("employee_id", employeeIds)
+                .eq("period_month", periodMonthFirst)
+            : Promise.resolve({ data: [] }),
+
+          supabase
+            .from("pl_monthly")
             .select("*")
-            .in("employee_id", employeeIds)
-            .eq("period_month", periodMonthFirst);
+            .eq("company_id", companyId)
+            .eq("period_month", periodMonthFirst)
+            .limit(1),
+        ]);
 
-          const map: Record<string, KpiRecord> = {};
-          for (const row of kpiRows ?? []) {
-            map[row.employee_id] = row as KpiRecord;
-          }
-          setKpiData(map);
-        } else {
-          setKpiData({});
+        const map: Record<string, KpiRecord> = {};
+        for (const row of kpiResult.data ?? []) {
+          map[row.employee_id] = row as KpiRecord;
         }
-
-        // Fetch PL monthly
-        const { data: plRows } = await supabase
-          .from("pl_monthly")
-          .select("*")
-          .eq("company_id", companyId)
-          .eq("period_month", periodMonthFirst)
-          .limit(1);
-
-        setPlRecord(plRows && plRows.length > 0 ? (plRows[0] as PLRecord) : null);
+        setKpiData(map);
+        setPlRecord(
+          plResult.data && plResult.data.length > 0
+            ? (plResult.data[0] as PLRecord)
+            : null
+        );
       } finally {
         setLoadingRecords(false);
       }

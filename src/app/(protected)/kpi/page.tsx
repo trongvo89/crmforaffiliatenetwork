@@ -27,7 +27,6 @@ export default async function KpiPage() {
     return <AccessDenied label="KPI & Bonus" />;
   }
 
-  // Fetch company record
   const { data: companies, error: companyError } = await supabase
     .from("companies")
     .select("*")
@@ -64,26 +63,27 @@ export default async function KpiPage() {
     );
   }
 
-  // Fetch active employees scoped by company_id
-  const { data: employees } = await supabase
-    .from("employees")
-    .select("*")
-    .eq("company_id", company.id)
-    .eq("is_active", true)
-    .order("name");
-
-  // Fetch pl_monthly for the current month
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const currentMonthFirst = `${year}-${month}-01`;
 
-  const { data: plRecords } = await supabase
-    .from("pl_monthly")
-    .select("*")
-    .eq("company_id", company.id)
-    .eq("period_month", currentMonthFirst)
-    .limit(1);
+  // Fetch employees and pl_monthly in parallel
+  const [{ data: employees }, { data: plRecords }] = await Promise.all([
+    supabase
+      .from("employees")
+      .select("id, name, email, role, custom_role_name, base_salary, is_active, company_id")
+      .eq("company_id", company.id)
+      .eq("is_active", true)
+      .order("name"),
+
+    supabase
+      .from("pl_monthly")
+      .select("*")
+      .eq("company_id", company.id)
+      .eq("period_month", currentMonthFirst)
+      .limit(1),
+  ]);
 
   const initialPlRecord = plRecords && plRecords.length > 0 ? plRecords[0] : null;
 

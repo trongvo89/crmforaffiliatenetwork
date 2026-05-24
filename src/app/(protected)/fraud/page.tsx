@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 export default async function FraudPage() {
   const supabase = await createClient();
 
-  // Auth check
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -25,7 +24,6 @@ export default async function FraudPage() {
     return <AccessDenied label="Fraud Detection" />;
   }
 
-  // Fetch company
   const { data: company } = await supabase
     .from("companies")
     .select("*")
@@ -43,31 +41,32 @@ export default async function FraudPage() {
     );
   }
 
-  // Fetch fraud flags with publisher info
-  const { data: flagsData } = await supabase
-    .from("fraud_flags")
-    .select("*, publishers(id, name, tier)")
-    .eq("company_id", company.id)
-    .order("created_at", { ascending: false });
-
-  // Fetch active publishers
-  const { data: publishersData } = await supabase
-    .from("publishers")
-    .select("id, name, tier")
-    .eq("company_id", company.id)
-    .eq("is_active", true)
-    .order("name");
-
-  // Fetch last 7 days of daily_metrics
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const sevenDaysAgoStr = sevenDaysAgo.toISOString().split("T")[0];
 
-  const { data: metricsData } = await supabase
-    .from("daily_metrics")
-    .select("*, publishers(id, name, tier)")
-    .eq("company_id", company.id)
-    .gte("date", sevenDaysAgoStr);
+  // Fetch all three in parallel
+  const [{ data: flagsData }, { data: publishersData }, { data: metricsData }] =
+    await Promise.all([
+      supabase
+        .from("fraud_flags")
+        .select("*, publishers(id, name, tier)")
+        .eq("company_id", company.id)
+        .order("created_at", { ascending: false }),
+
+      supabase
+        .from("publishers")
+        .select("id, name, tier")
+        .eq("company_id", company.id)
+        .eq("is_active", true)
+        .order("name"),
+
+      supabase
+        .from("daily_metrics")
+        .select("*, publishers(id, name, tier)")
+        .eq("company_id", company.id)
+        .gte("date", sevenDaysAgoStr),
+    ]);
 
   return (
     <FraudClient
