@@ -28,7 +28,7 @@ export default async function TasksPage() {
   if (companyId) {
     const { data: tasksData } = await supabase
       .from("tasks")
-      .select("*, employees!assigned_to(id, name, role)")
+      .select("*, employees!assigned_to(id, name, role), supervisor:employees!supervisor_id(id, name, role)")
       .eq("company_id", companyId)
       .order("created_at", { ascending: false });
 

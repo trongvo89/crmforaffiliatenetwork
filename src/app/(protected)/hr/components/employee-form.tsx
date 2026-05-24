@@ -56,6 +56,7 @@ export function EmployeeForm({
   const [role, setRole] = React.useState<Employee["role"]>("bd");
   const [customRoleName, setCustomRoleName] = React.useState("");
   const [baseSalary, setBaseSalary] = React.useState("");
+  const [telegramChatId, setTelegramChatId] = React.useState("");
   const [isActive, setIsActive] = React.useState(true);
 
   const isEdit = employee !== null;
@@ -68,6 +69,7 @@ export function EmployeeForm({
         setRole(employee.role);
         setCustomRoleName(employee.custom_role_name ?? "");
         setBaseSalary(employee.base_salary != null ? String(employee.base_salary) : "");
+        setTelegramChatId((employee as Employee & { telegram_chat_id?: string }).telegram_chat_id ?? "");
         setIsActive(employee.is_active);
       } else {
         setName("");
@@ -75,6 +77,7 @@ export function EmployeeForm({
         setRole("bd");
         setCustomRoleName("");
         setBaseSalary("");
+        setTelegramChatId("");
         setIsActive(true);
       }
     }
@@ -98,6 +101,7 @@ export function EmployeeForm({
         role,
         custom_role_name: role === "custom" ? customRoleName.trim() || null : null,
         base_salary: baseSalary !== "" ? Number(baseSalary) : null,
+        telegram_chat_id: telegramChatId.trim() || null,
         ...(isEdit ? { is_active: isActive } : {}),
       };
 
@@ -209,6 +213,19 @@ export function EmployeeForm({
               onChange={(e) => setBaseSalary(e.target.value)}
               placeholder="VD: 15"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="emp-telegram">Telegram Chat ID</Label>
+            <Input
+              id="emp-telegram"
+              value={telegramChatId}
+              onChange={(e) => setTelegramChatId(e.target.value)}
+              placeholder="VD: 123456789"
+            />
+            <p className="text-xs text-gray-400">
+              Dùng để nhận thông báo task qua Telegram. Lấy ID bằng cách nhắn tin cho @userinfobot.
+            </p>
           </div>
 
           {isEdit && (

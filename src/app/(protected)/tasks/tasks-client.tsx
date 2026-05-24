@@ -45,6 +45,7 @@ export interface Task {
   status: "todo" | "in_progress" | "review" | "done";
   priority: "high" | "medium" | "low";
   assigned_to: string | null;
+  supervisor_id: string | null;
   due_date: string | null;
   related_type: "publisher" | "advertiser" | "contract" | "pipeline" | null;
   related_id: string | null;
@@ -52,6 +53,7 @@ export interface Task {
   created_at: string;
   updated_at: string;
   employees?: { id: string; name: string; role: string } | null;
+  supervisor?: { id: string; name: string; role: string } | null;
 }
 
 export interface Employee {
@@ -125,7 +127,7 @@ function isOverdue(dateStr: string): boolean {
 
 // ─── Initials avatar ──────────────────────────────────────────────────────────
 
-function InitialsAvatar({ name }: { name: string }) {
+function InitialsAvatar({ name, color = "blue" }: { name: string; color?: "blue" | "purple" }) {
   const initials = name
     .split(" ")
     .map((w) => w[0])
@@ -134,7 +136,12 @@ function InitialsAvatar({ name }: { name: string }) {
     .toUpperCase();
 
   return (
-    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] font-semibold text-white">
+    <span
+      className={cn(
+        "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white",
+        color === "purple" ? "bg-purple-500" : "bg-blue-500"
+      )}
+    >
       {initials}
     </span>
   );
@@ -147,6 +154,7 @@ const EMPTY_FORM = {
   description: "",
   priority: "medium" as Task["priority"],
   assigned_to: "",
+  supervisor_id: "",
   due_date: "",
   related_type: "" as Task["related_type"] | "",
   related_name: "",
@@ -193,11 +201,23 @@ function TaskCard({
         <p className="mb-2 line-clamp-2 text-xs text-gray-500">{task.description}</p>
       )}
 
-      {/* Assignee */}
-      {task.employees && (
-        <div className="mb-1.5 flex items-center gap-1.5 text-xs text-gray-600">
-          <InitialsAvatar name={task.employees.name} />
-          <span>{task.employees.name}</span>
+      {/* Assignee + Supervisor */}
+      {(task.employees || task.supervisor) && (
+        <div className="mb-1.5 space-y-1">
+          {task.employees && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+              <InitialsAvatar name={task.employees.name} color="blue" />
+              <span className="truncate">{task.employees.name}</span>
+              <span className="shrink-0 text-gray-400 text-[10px]">phụ trách</span>
+            </div>
+          )}
+          {task.supervisor && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <InitialsAvatar name={task.supervisor.name} color="purple" />
+              <span className="truncate">{task.supervisor.name}</span>
+              <span className="shrink-0 text-gray-400 text-[10px]">giám sát</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -343,6 +363,7 @@ export function TasksClient({ initialTasks, employees, companyId }: TasksClientP
       description: task.description ?? "",
       priority: task.priority,
       assigned_to: task.assigned_to ?? "",
+      supervisor_id: task.supervisor_id ?? "",
       due_date: task.due_date ?? "",
       related_type: task.related_type ?? "",
       related_name: task.related_name ?? "",
@@ -369,11 +390,25 @@ export function TasksClient({ initialTasks, employees, companyId }: TasksClientP
       description: form.description.trim() || null,
       priority: form.priority,
       assigned_to: form.assigned_to || null,
+      supervisor_id: form.supervisor_id || null,
       due_date: form.due_date || null,
       related_type: (form.related_type as Task["related_type"]) || null,
       related_name: form.related_type && form.related_name.trim() ? form.related_name.trim() : null,
       related_id: null,
     };
+  }
+
+  async function sendTaskNotification(taskId: string, taskTitle: string, priority: Task["priority"], dueDate: string | null, assignedToId: string | null, supervisorId: string | null, action: "created" | "updated") {
+    if (!assignedToId && !supervisorId) return;
+    try {
+      await fetch("/api/task-notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId, taskTitle, priority, dueDate, assignedToId, supervisorId, action }),
+      });
+    } catch {
+      // Notifications are best-effort — don't block the UI
+    }
   }
 
   // ── Save ───────────────────────────────────────────────────────────────────
@@ -387,13 +422,17 @@ export function TasksClient({ initialTasks, employees, companyId }: TasksClientP
     setSaving(true);
     try {
       const payload = buildPayload();
+      const SELECT = "*, employees!assigned_to(id, name, role), supervisor:employees!supervisor_id(id, name, role)";
 
       if (editingTask) {
+        const assigneeChanged = payload.assigned_to !== editingTask.assigned_to;
+        const supervisorChanged = payload.supervisor_id !== editingTask.supervisor_id;
+
         const { data, error } = await supabase
           .from("tasks")
           .update({ ...payload, updated_at: new Date().toISOString() })
           .eq("id", editingTask.id)
-          .select("*, employees!assigned_to(id, name, role)")
+          .select(SELECT)
           .single();
 
         if (error) throw error;
@@ -402,17 +441,23 @@ export function TasksClient({ initialTasks, employees, companyId }: TasksClientP
           prev.map((t) => (t.id === editingTask.id ? (data as Task) : t))
         );
         toast({ title: "Đã cập nhật task" });
+
+        if (assigneeChanged || supervisorChanged) {
+          void sendTaskNotification(editingTask.id, payload.title, payload.priority, payload.due_date, payload.assigned_to, payload.supervisor_id, "updated");
+        }
       } else {
         const { data, error } = await supabase
           .from("tasks")
           .insert({ ...payload, company_id: companyId, status: "todo" })
-          .select("*, employees!assigned_to(id, name, role)")
+          .select(SELECT)
           .single();
 
         if (error) throw error;
 
-        setTasks((prev) => [data as Task, ...prev]);
+        const created = data as Task;
+        setTasks((prev) => [created, ...prev]);
         toast({ title: "Đã tạo task mới" });
+        void sendTaskNotification(created.id, created.title, created.priority, created.due_date, created.assigned_to, created.supervisor_id, "created");
       }
 
       closeForm();
@@ -674,25 +719,26 @@ export function TasksClient({ initialTasks, employees, companyId }: TasksClientP
               />
             </div>
 
-            {/* Priority + Assigned (2 columns) */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Độ ưu tiên</Label>
-                <Select
-                  value={form.priority}
-                  onValueChange={(v) => setField("priority", v as Task["priority"])}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="high">Cao</SelectItem>
-                    <SelectItem value="medium">Trung bình</SelectItem>
-                    <SelectItem value="low">Thấp</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Priority */}
+            <div className="space-y-1.5">
+              <Label>Độ ưu tiên</Label>
+              <Select
+                value={form.priority}
+                onValueChange={(v) => setField("priority", v as Task["priority"])}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high">Cao</SelectItem>
+                  <SelectItem value="medium">Trung bình</SelectItem>
+                  <SelectItem value="low">Thấp</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
+            {/* Assigned + Supervisor (2 columns) */}
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Phụ trách</Label>
                 <Select
@@ -706,6 +752,28 @@ export function TasksClient({ initialTasks, employees, companyId }: TasksClientP
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Chưa giao</SelectItem>
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Người giám sát</Label>
+                <Select
+                  value={form.supervisor_id || "__none__"}
+                  onValueChange={(v) =>
+                    setField("supervisor_id", v === "__none__" ? "" : v)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Không có" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Không có</SelectItem>
                     {employees.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id}>
                         {emp.name}
