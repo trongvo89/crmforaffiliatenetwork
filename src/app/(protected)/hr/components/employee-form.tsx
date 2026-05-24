@@ -29,6 +29,7 @@ const ROLE_LABELS = {
   bd: "Business Development",
   am: "Account Manager",
   admin: "Admin",
+  it: "IT",
   custom: "Khác",
 };
 

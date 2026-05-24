@@ -23,7 +23,7 @@ export interface Employee {
   company_id: string;
   name: string;
   email: string | null;
-  role: "pm" | "bd" | "am" | "admin" | "custom";
+  role: "pm" | "bd" | "am" | "admin" | "it" | "custom";
   custom_role_name: string | null;
   base_salary: number | null;
   is_active: boolean;
@@ -36,6 +36,7 @@ const ROLE_LABELS: Record<Employee["role"], string> = {
   bd: "Business Development",
   am: "Account Manager",
   admin: "Admin",
+  it: "IT",
   custom: "Khác",
 };
 
@@ -44,6 +45,7 @@ const ROLE_COLORS: Record<Employee["role"], { badge: string; dot: string }> = {
   bd: { badge: "bg-purple-100 text-purple-700", dot: "bg-purple-500" },
   am: { badge: "bg-green-100 text-green-700", dot: "bg-green-500" },
   admin: { badge: "bg-orange-100 text-orange-700", dot: "bg-orange-500" },
+  it: { badge: "bg-cyan-100 text-cyan-700", dot: "bg-cyan-500" },
   custom: { badge: "bg-gray-100 text-gray-600", dot: "bg-gray-400" },
 };
 
@@ -79,7 +81,7 @@ export function HrClient({ initialEmployees, companyId }: HrClientProps) {
 
   const roleGroups = React.useMemo(() => {
     const groups: Record<string, Employee[]> = {};
-    for (const role of ["pm", "bd", "am", "admin", "custom"] as Employee["role"][]) {
+    for (const role of ["pm", "bd", "am", "admin", "it", "custom"] as Employee["role"][]) {
       const group = employees.filter((e) => e.role === role && e.is_active);
       if (group.length > 0) groups[role] = group;
     }

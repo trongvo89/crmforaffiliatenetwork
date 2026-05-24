@@ -32,6 +32,10 @@ import {
   Users,
   CalendarDays,
   Archive,
+  UserPlus,
+  Building2,
+  CheckSquare,
+  CheckCircle2,
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -323,6 +327,11 @@ export function PipelineClient({
   const [filterType, setFilterType] = React.useState<"all" | "publisher" | "advertiser">("all");
   const [filterOwner, setFilterOwner] = React.useState<"all" | string>("all");
 
+  const [convertingId, setConvertingId] = React.useState<string | null>(null);
+  const [creatingTaskId, setCreatingTaskId] = React.useState<string | null>(null);
+  const [convertedIds, setConvertedIds] = React.useState<Set<string>>(new Set());
+  const [taskedIds, setTaskedIds] = React.useState<Set<string>>(new Set());
+
   // ── Sync selected contact when contacts list updates ───────────────────────
 
   React.useEffect(() => {
@@ -496,6 +505,91 @@ export function PipelineClient({
       toast({ title: "Lưu trữ thất bại", variant: "destructive" });
     } finally {
       setArchivingId(null);
+    }
+  }
+
+  // ── Convert to Publisher/Advertiser ───────────────────────────────────────
+
+  async function handleConvertToEntity(contact: PipelineContact) {
+    if (convertedIds.has(contact.id)) {
+      toast({ title: "Contact này đã được chuyển sang CRM rồi." });
+      return;
+    }
+
+    setConvertingId(contact.id);
+    try {
+      if (contact.type === "publisher") {
+        const { error } = await supabase.from("publishers").insert({
+          company_id: companyId,
+          name: contact.name,
+          email: contact.contact_email ?? null,
+          tier: "Bronze",
+          traffic_sources: [],
+          notes: contact.notes ?? null,
+          is_active: true,
+        });
+        if (error) throw error;
+        toast({ title: `Đã thêm "${contact.name}" vào Publisher CRM`, description: "Có thể tìm thấy trong mục Publishers." });
+      } else {
+        const { error } = await supabase.from("advertisers").insert({
+          company_id: companyId,
+          name: contact.name,
+          contact_name: contact.contact_name ?? null,
+          contact_email: contact.contact_email ?? null,
+          payment_terms: 30,
+          notes: contact.notes ?? null,
+          is_active: true,
+        });
+        if (error) throw error;
+        toast({ title: `Đã thêm "${contact.name}" vào Advertiser CRM`, description: "Có thể tìm thấy trong mục Advertisers." });
+      }
+      setConvertedIds((prev) => new Set(prev).add(contact.id));
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Chuyển thất bại",
+        description: err instanceof Error ? err.message : "Có lỗi xảy ra.",
+        variant: "destructive",
+      });
+    } finally {
+      setConvertingId(null);
+    }
+  }
+
+  // ── Create integration task ────────────────────────────────────────────────
+
+  async function handleCreateIntegrationTask(contact: PipelineContact) {
+    if (taskedIds.has(contact.id)) {
+      toast({ title: "Task tích hợp cho contact này đã được tạo rồi." });
+      return;
+    }
+
+    setCreatingTaskId(contact.id);
+    try {
+      const typeLabel = contact.type === "publisher" ? "Publisher" : "Advertiser";
+      const { error } = await supabase.from("tasks").insert({
+        company_id: companyId,
+        title: `Tích hợp ${typeLabel}: ${contact.name}`,
+        description: `Thiết lập kết nối và hệ thống tracking với ${contact.name}.\nLoại: ${typeLabel}${contact.contact_email ? `\nEmail: ${contact.contact_email}` : ""}${contact.contact_phone ? `\nPhone: ${contact.contact_phone}` : ""}`,
+        status: "todo",
+        priority: "high",
+        assigned_to: contact.owner_id ?? null,
+        related_type: "pipeline",
+        related_id: contact.id,
+        related_name: contact.name,
+      });
+      if (error) throw error;
+      toast({ title: "Đã tạo task tích hợp", description: "Có thể xem trong mục Công việc." });
+      setTaskedIds((prev) => new Set(prev).add(contact.id));
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Tạo task thất bại",
+        description: err instanceof Error ? err.message : "Có lỗi xảy ra.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingTaskId(null);
     }
   }
 
@@ -780,6 +874,58 @@ export function PipelineClient({
                 })}
               </div>
             </div>
+
+            {/* Signed actions */}
+            {selectedContact.stage === "signed" && (
+              <div className="border-b bg-green-50 px-4 py-3">
+                <p className="mb-2 text-xs font-semibold text-green-800 uppercase tracking-wide">
+                  Đã ký — Hành động tiếp theo
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full justify-start border-green-200 bg-white text-sm hover:bg-green-100"
+                    disabled={convertingId === selectedContact.id || convertedIds.has(selectedContact.id)}
+                    onClick={() => handleConvertToEntity(selectedContact)}
+                  >
+                    {convertingId === selectedContact.id ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : convertedIds.has(selectedContact.id) ? (
+                      <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                    ) : selectedContact.type === "publisher" ? (
+                      <UserPlus className="mr-2 h-4 w-4 text-blue-600" />
+                    ) : (
+                      <Building2 className="mr-2 h-4 w-4 text-orange-600" />
+                    )}
+                    {convertedIds.has(selectedContact.id)
+                      ? "Đã thêm vào CRM"
+                      : selectedContact.type === "publisher"
+                      ? "Thêm vào Publisher CRM"
+                      : "Thêm vào Advertiser CRM"}
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full justify-start border-blue-200 bg-white text-sm hover:bg-blue-50"
+                    disabled={creatingTaskId === selectedContact.id || taskedIds.has(selectedContact.id)}
+                    onClick={() => handleCreateIntegrationTask(selectedContact)}
+                  >
+                    {creatingTaskId === selectedContact.id ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : taskedIds.has(selectedContact.id) ? (
+                      <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                    ) : (
+                      <CheckSquare className="mr-2 h-4 w-4 text-blue-600" />
+                    )}
+                    {taskedIds.has(selectedContact.id)
+                      ? "Task đã được tạo"
+                      : "Tạo task tích hợp IT"}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Tabs */}
             <div className="flex border-b">
