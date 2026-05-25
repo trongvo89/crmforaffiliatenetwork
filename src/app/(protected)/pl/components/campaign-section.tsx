@@ -109,30 +109,34 @@ function CampaignFormDialog({
   onSuccess,
 }: CampaignFormDialogProps) {
   const { toast } = useToast();
+  const NONE = "__none__";
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
-  const [advertiserId, setAdvertiserId] = useState("");
-  const [offerId, setOfferId] = useState("");
+  const [advertiserId, setAdvertiserId] = useState(NONE);
+  const [offerId, setOfferId] = useState(NONE);
   const [status, setStatus] = useState<Campaign["status"]>("active");
 
   React.useEffect(() => {
     if (open) {
       if (existing) {
         setName(existing.name);
-        setAdvertiserId(existing.advertiser_id ?? "");
-        setOfferId(existing.offer_id ?? "");
+        setAdvertiserId(existing.advertiser_id ?? NONE);
+        setOfferId(existing.offer_id ?? NONE);
         setStatus(existing.status);
       } else {
         setName("");
-        setAdvertiserId("");
-        setOfferId("");
+        setAdvertiserId(NONE);
+        setOfferId(NONE);
         setStatus("active");
       }
     }
   }, [open, existing]);
 
   const filteredOffers = useMemo(
-    () => (advertiserId ? offers.filter((o) => o.advertiser_id === advertiserId) : offers),
+    () =>
+      advertiserId !== NONE
+        ? offers.filter((o) => o.advertiser_id === advertiserId)
+        : offers,
     [offers, advertiserId]
   );
 
@@ -149,8 +153,8 @@ function CampaignFormDialog({
     const payload = {
       company_id: companyId,
       name: name.trim(),
-      advertiser_id: advertiserId || null,
-      offer_id: offerId || null,
+      advertiser_id: advertiserId !== NONE ? advertiserId : null,
+      offer_id: offerId !== NONE ? offerId : null,
       status,
       updated_at: new Date().toISOString(),
     };
@@ -215,14 +219,14 @@ function CampaignFormDialog({
               value={advertiserId}
               onValueChange={(v) => {
                 setAdvertiserId(v);
-                setOfferId("");
+                setOfferId(NONE);
               }}
             >
               <SelectTrigger id="campaign-advertiser">
                 <SelectValue placeholder="Chọn Advertiser" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">-- Không chọn --</SelectItem>
+                <SelectItem value={NONE}>-- Không chọn --</SelectItem>
                 {advertisers.map((adv) => (
                   <SelectItem key={adv.id} value={adv.id}>
                     {adv.name}
@@ -239,7 +243,7 @@ function CampaignFormDialog({
                 <SelectValue placeholder="Chọn Offer" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">-- Không chọn --</SelectItem>
+                <SelectItem value={NONE}>-- Không chọn --</SelectItem>
                 {filteredOffers.map((offer) => (
                   <SelectItem key={offer.id} value={offer.id}>
                     {offer.name}
